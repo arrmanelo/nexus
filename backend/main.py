@@ -1,13 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
 from app.api.routes import sources, chat, studio, auth
+import os
 
 app = FastAPI(title="OceanMind API", version="0.1.0")
 
+# Берём из переменной окружения или используем дефолт
+cors_origins_raw = os.getenv("CORS_ORIGINS", "")
+extra_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
+
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://nexuss-1.vercel.app",
+] + extra_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
