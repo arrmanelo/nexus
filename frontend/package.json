@@ -2,8 +2,8 @@
   "name": "oceanmind-frontend",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "build": "npx vite build",
+    "dev": "npx vite",
     "preview": "vite preview"
   },
   "dependencies": {
