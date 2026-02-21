@@ -76,7 +76,7 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
 
 /* OVERLAY for mobile */
 .sb-overlay{
-  display:none;position:fixed;inset:0;z-index:98;
+  display:none !important;position:fixed;inset:0;z-index:98;
   background:rgba(0,0,0,0.6);
 }
 
@@ -323,7 +323,7 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
     width:220px;
   }
   .sidebar.open{transform:translateX(0);}
-  .sb-overlay.open{display:block;}
+  .sb-overlay.open{display:block !important;}
   .mob-bar{display:flex;}
   .src-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
   .msg{max-width:100%;}
