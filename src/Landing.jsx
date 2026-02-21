@@ -7,42 +7,42 @@ import * as THREE from "three";
 // ═══════════════════════════════════════════════════════
 const CONFIG = {
   brand: "NEXUS",
-  tagline: "Build the future,",
-  tagline2: "ship today.",
+  tagline: "Your documents,",
+  tagline2: "finally understood.",
   description:
-    "The all-in-one platform that transforms how modern teams create, collaborate and launch products at light speed.",
-  cta: "Start for free",
+    "Upload any document and start asking questions. NEXUS reads, understands and answers — so you spend time on insights, not on searching.",
+  cta: "Try for free",
   ctaSecondary: "Watch demo",
   accentColor: "#00f5d4",
   features: [
     {
       icon: "⬡",
-      title: "Instant Deploy",
-      desc: "Push to production in seconds. Zero config, zero headaches.",
+      title: "Ask Anything",
+      desc: "Chat with your documents like you'd chat with a colleague who's read everything.",
     },
     {
       icon: "◈",
-      title: "AI-Powered",
-      desc: "Intelligent automation that learns your workflow and accelerates it.",
+      title: "Any Format",
+      desc: "PDFs, Word docs, presentations, plain text — upload once, ask forever.",
     },
     {
       icon: "⬟",
-      title: "Scale Freely",
-      desc: "From 1 user to 1 million. Infrastructure that grows with you.",
+      title: "Instant Answers",
+      desc: "No more scrolling through 80-page reports. Get the exact answer in seconds.",
     },
     {
       icon: "◇",
-      title: "Secure by Default",
-      desc: "Enterprise-grade security baked in at every layer.",
+      title: "Source-backed",
+      desc: "Every answer comes with a reference to the exact part of your document.",
     },
   ],
   stats: [
-    { value: "10x", label: "Faster shipping" },
+    { value: "10x", label: "Faster research" },
     { value: "99.9%", label: "Uptime SLA" },
-    { value: "50k+", label: "Teams worldwide" },
+    { value: "50k+", label: "Documents analyzed" },
     { value: "$0", label: "To get started" },
   ],
-  nav: ["Product", "Pricing", "Docs", "Blog"],
+  nav: ["Product", "Pricing"],
 };
 // ═══════════════════════════════════════════════════════
 
@@ -328,8 +328,8 @@ function StatItem({ value, label, delay }) {
 
   const display = isSpecial ? value : (
     value.includes("%") ? count.toFixed(1) + "%" :
-    value.includes("k") ? Math.floor(count) + "k+" :
-    value.includes("x") ? Math.floor(count) + "x" : value
+      value.includes("k") ? Math.floor(count) + "k+" :
+        value.includes("x") ? Math.floor(count) + "x" : value
   );
 
   return (
@@ -681,6 +681,10 @@ export default function Landing() {
             <li key={item}>
               <span
                 style={S.navLink}
+                onClick={() => {
+                  const id = item.toLowerCase();
+                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+                }}
                 onMouseEnter={e => e.target.style.color = "#00f5d4"}
                 onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}
               >
@@ -755,7 +759,7 @@ export default function Landing() {
             alignItems: "center",
             gap: "8px",
           }}>
-            {["#ff5f57","#febc2e","#28c840"].map(c => (
+            {["#ff5f57", "#febc2e", "#28c840"].map(c => (
               <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.7 }} />
             ))}
             <div style={{
@@ -776,7 +780,7 @@ export default function Landing() {
           <div style={{ padding: "24px", display: "flex", gap: "16px", height: "calc(100% - 49px)" }}>
             {/* Sidebar */}
             <div style={{ width: "140px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              {["Overview","Analytics","Projects","Settings","Deploy"].map((item, i) => (
+              {["My Sources", "Chat", "Studio", "History", "Settings"].map((item, i) => (
                 <div key={item} style={{
                   padding: "8px 12px",
                   borderRadius: "6px",
@@ -791,12 +795,12 @@ export default function Landing() {
             </div>
             {/* Main area */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
-              {/* Metric cards */}
+              {/* Uploaded docs */}
               <div style={{ display: "flex", gap: "12px" }}>
                 {[
-                  { label: "Revenue", val: "$128.4k", change: "+24%" },
-                  { label: "Users", val: "48,291", change: "+11%" },
-                  { label: "Uptime", val: "99.99%", change: "stable" },
+                  { label: "Q4 Report.pdf", val: "48 pages", tag: "indexed" },
+                  { label: "Contract.docx", val: "12 pages", tag: "indexed" },
+                  { label: "Research.pdf", val: "94 pages", tag: "indexed" },
                 ].map(m => (
                   <div key={m.label} style={{
                     flex: 1, padding: "14px",
@@ -804,37 +808,43 @@ export default function Landing() {
                     border: "1px solid rgba(255,255,255,0.06)",
                     borderRadius: "10px",
                   }}>
-                    <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>{m.label}</div>
-                    <div style={{ fontSize: "18px", fontWeight: 700, color: "#fff" }}>{m.val}</div>
-                    <div style={{ fontSize: "10px", color: "#00f5d4", marginTop: "4px" }}>{m.change}</div>
+                    <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>📄 {m.label}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{m.val}</div>
+                    <div style={{ fontSize: "10px", color: "#00f5d4", marginTop: "4px" }}>✓ {m.tag}</div>
                   </div>
                 ))}
               </div>
-              {/* Fake chart */}
+              {/* Fake chat */}
               <div style={{
                 flex: 1,
                 background: "rgba(255,255,255,0.02)",
                 border: "1px solid rgba(255,255,255,0.05)",
                 borderRadius: "10px",
-                position: "relative",
-                overflow: "hidden",
-                display: "flex", alignItems: "flex-end",
                 padding: "16px",
-                gap: "6px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                overflow: "hidden",
               }}>
-                {[40,65,45,80,60,90,70,85,55,92,75,88].map((h, i) => (
+                {[
+                  { role: "user", text: "What were the main risks mentioned in Q4?" },
+                  { role: "ai", text: "Three key risks were identified: supply chain delays, FX exposure in EMEA, and rising CAC in the SMB segment. See page 14." },
+                  { role: "user", text: "Summarize the contract termination clause" },
+                ].map((msg, i) => (
                   <div key={i} style={{
-                    flex: 1,
-                    height: `${h}%`,
-                    background: `linear-gradient(180deg, rgba(0,245,212,${0.3 + i/30}) 0%, rgba(0,153,255,0.1) 100%)`,
-                    borderRadius: "4px 4px 0 0",
-                    transition: "height 0.3s ease",
-                  }} />
+                    alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                    maxWidth: "75%",
+                    padding: "8px 12px",
+                    borderRadius: msg.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                    background: msg.role === "user" ? "rgba(0,245,212,0.12)" : "rgba(255,255,255,0.05)",
+                    border: msg.role === "user" ? "1px solid rgba(0,245,212,0.2)" : "1px solid rgba(255,255,255,0.06)",
+                    fontSize: "10px",
+                    color: msg.role === "user" ? "#00f5d4" : "rgba(255,255,255,0.6)",
+                    lineHeight: 1.5,
+                  }}>
+                    {msg.text}
+                  </div>
                 ))}
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "linear-gradient(0deg, rgba(0,245,212,0.03) 0%, transparent 60%)",
-                }} />
               </div>
             </div>
           </div>
@@ -854,11 +864,11 @@ export default function Landing() {
       </section>
 
       {/* FEATURES */}
-      <section style={S.section}>
+      <section id="product" style={S.section}>
         <div style={S.sectionLabel}>Features</div>
-        <h2 style={S.sectionTitle}>Everything you need.<br />Nothing you don't.</h2>
+        <h2 style={S.sectionTitle}>Stop reading.<br />Start asking.</h2>
         <p style={S.sectionSub}>
-          We stripped away the complexity so you can focus on building what matters.
+          Upload your documents once. Then just ask — in plain language, no special syntax.
         </p>
         <div style={S.grid4}>
           {CONFIG.features.map((f, i) => (
@@ -879,12 +889,12 @@ export default function Landing() {
       {/* SOCIAL PROOF */}
       <section style={S.section}>
         <div style={S.sectionLabel}>Testimonials</div>
-        <h2 style={{ ...S.sectionTitle, marginBottom: "56px" }}>Loved by builders</h2>
+        <h2 style={{ ...S.sectionTitle, marginBottom: "56px" }}>Loved by people who read a lot</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
           {[
-            { quote: "Nexus cut our deploy time from 40 minutes to under 30 seconds. It's not even a comparison anymore.", name: "Sarah Chen", role: "CTO at Verve" },
-            { quote: "The developer experience is in a league of its own. Our team was productive from day one.", name: "Marcus Rodriguez", role: "Lead Engineer at Drift" },
-            { quote: "We scaled from 0 to 200k users without touching infra once. That's the magic of Nexus.", name: "Aisha Patel", role: "Founder at Solana Labs" },
+            { quote: "I dropped a 120-page tender document and had a full summary with action points in under two minutes. Unreal.", name: "Sarah Chen", role: "Procurement Lead at Verve" },
+            { quote: "Our legal team now reviews contracts in a fraction of the time. We just ask NEXUS what we need to know.", name: "Marcus Rodriguez", role: "General Counsel at Drift" },
+            { quote: "I used to spend hours going through research papers. Now I upload them and have a conversation instead.", name: "Aisha Patel", role: "Research Analyst at Solana Labs" },
           ].map((t, i) => (
             <div key={i} style={{
               background: "rgba(255,255,255,0.03)",
@@ -920,7 +930,7 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <div style={S.ctaSection}>
+      <div id="pricing" style={S.ctaSection}>
         <div style={S.ctaCard}>
           {/* Glow blobs */}
           <div style={{
@@ -939,10 +949,10 @@ export default function Landing() {
           <div style={{ position: "relative" }}>
             <div style={S.sectionLabel}>Get started today</div>
             <h2 style={{ ...S.sectionTitle, marginBottom: "16px" }}>
-              Ready to build<br />something great?
+              Your documents<br />deserve better.
             </h2>
             <p style={{ ...S.sectionSub, margin: "0 auto 48px", textAlign: "center" }}>
-              Join 50,000+ teams already shipping faster with {CONFIG.brand}.
+              Join thousands of people who stopped searching and started asking.
             </p>
             <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
               <button
@@ -952,10 +962,10 @@ export default function Landing() {
               >
                 {CONFIG.cta} — it's free →
               </button>
-              <button style={S.ctaBtnGhost}>Talk to sales</button>
+              <button style={S.ctaBtnGhost}>Talk to us</button>
             </div>
             <p style={{ marginTop: "24px", fontSize: "12px", color: "rgba(255,255,255,0.25)", letterSpacing: "0.05em" }}>
-              No credit card required · Setup in 60 seconds · Cancel anytime
+              No credit card required · Ready in 60 seconds · Cancel anytime
             </p>
           </div>
         </div>

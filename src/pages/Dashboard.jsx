@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { getSources, uploadSource, deleteSource, sendMessage, generateArtifact } from '../lib/api'
 import UploadModal from '../components/UploadModal'
 
+function getDisplayName(name = '') {
+  const parts = name.split('/')
+  const filename = parts[parts.length - 1]
+  const clean = filename.replace(/^[a-f0-9\-]{36}_?/i, '')
+  return clean || filename
+}
+
+function getFileExt(name = '') {
+  return (name.split('.').pop() || 'file').toUpperCase()
+}
+
 function formatMessage(text) {
   if (!text) return ''
   return text
@@ -10,374 +21,349 @@ function formatMessage(text) {
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
     .replace(/\n{2,}/g, '</p><p>')
 }
 
-function MessageBubble({ text }) {
-  return (
-    <div
-      className="msg-text"
-      dangerouslySetInnerHTML={{ __html: `<p>${formatMessage(text)}</p>` }}
-    />
-  )
-}
-
-function getFileIcon(name = '') {
-  const ext = (name.split('.').pop() || '').toLowerCase()
-  if (ext === 'pdf') return '📄'
-  if (['doc','docx'].includes(ext)) return '📝'
-  if (['jpg','jpeg','png','gif','webp','avif','bmp','heic'].includes(ext)) return '🖼️'
-  if (['mp3','wav','ogg','aac','m4a'].includes(ext)) return '🎵'
-  if (['mp4','avi','mov','mpeg'].includes(ext)) return '🎬'
-  if (['csv','xlsx'].includes(ext)) return '📊'
-  if (['txt','md'].includes(ext)) return '📃'
-  return '📎'
-}
-
-// Берём только оригинальное имя файла без uuid-префиксов
-function getDisplayName(name = '') {
-  // Supabase иногда добавляет uuid_ спереди — убираем
-  const parts = name.split('/')
-  const filename = parts[parts.length - 1]
-  // Убираем uuid- префикс типа "abc123-filename.pdf"
-  const clean = filename.replace(/^[a-f0-9\-]{36}_?/i, '')
-  return clean || filename
-}
+const NAV = [
+  { id: 'sources', label: 'My Sources' },
+  { id: 'chat',    label: 'Chat' },
+  { id: 'studio',  label: 'Studio' },
+  { id: 'history', label: 'History' },
+  { id: 'settings',label: 'Settings' },
+]
 
 const STUDIO_TOOLS = [
-  { type: 'audio',        label: 'Аудиопересказ',    sub: 'Подкаст из документа' },
-  { type: 'video',        label: 'Видеопересказ',     sub: 'Видеообзор материала' },
-  { type: 'mindmap',      label: 'Ментальная карта',  sub: 'Структура знаний' },
-  { type: 'test',         label: 'Тест',              sub: 'Вопросы и ответы' },
-  { type: 'cards',        label: 'Карточки',          sub: 'Для запоминания' },
-  { type: 'summary',      label: 'Резюме',            sub: 'Краткое изложение' },
-  { type: 'presentation', label: 'Презентация',       sub: 'Слайды по теме' },
-  { type: 'infographic',  label: 'Инфографика',       sub: 'Визуальная схема' },
-  { type: 'report',       label: 'Отчёт',             sub: 'Подробный анализ' },
+  { type: 'summary',      label: 'Summary',       desc: 'Quick overview' },
+  { type: 'test',         label: 'Quiz',           desc: 'Test your knowledge' },
+  { type: 'cards',        label: 'Flashcards',     desc: 'For memorization' },
+  { type: 'mindmap',      label: 'Mind Map',       desc: 'Visual structure' },
+  { type: 'presentation', label: 'Presentation',   desc: 'Slide deck' },
+  { type: 'report',       label: 'Report',         desc: 'Deep analysis' },
+]
+
+const SUGGESTED = [
+  'What were the main risks mentioned?',
+  'Summarize the key findings',
+  'What are the action items?',
 ]
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:      #060a14;
-    --bg2:     #090e1c;
-    --bg3:     #0d1426;
-    --border:  rgba(255,255,255,0.07);
-    --accent:  #4affda;
-    --accent2: #2eb8f0;
-    --fg:      #f0f2ff;
-    --fg2:     rgba(240,242,255,0.55);
-    --fg3:     rgba(240,242,255,0.22);
-    --glow:    rgba(74,255,218,0.15);
-  }
-  html, body, #root { height: 100%; }
-  body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; overflow: hidden; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --void:#050810;
+  --deep:#080d1a;
+  --panel:#0b1120;
+  --card:#0f1628;
+  --rim:rgba(74,255,218,0.08);
+  --rim2:rgba(255,255,255,0.05);
+  --cyan:#4affda;
+  --blue:#2eb8f0;
+  --purple:#8b5cf6;
+  --fg:#e8edff;
+  --fg2:rgba(232,237,255,0.5);
+  --fg3:rgba(232,237,255,0.2);
+}
+html,body,#root{height:100%;overflow:hidden;}
+body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
 
-  /* ── TOPBAR ── */
-  .tb {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 22px; height: 52px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    flex-shrink: 0;
-  }
-  .tb-logo {
-    font-family: 'Syne', sans-serif;
-    font-size: 22px; font-weight: 900;
-    letter-spacing: 0.15em;
-    color: #ffffff; cursor: pointer;
-    display: flex; align-items: center; gap: 8px;
-    text-decoration: none;
-  }
-  .tb-logo-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: linear-gradient(135deg, #4affda, #2eb8f0);
-    box-shadow: 0 0 8px rgba(74,255,218,0.6);
-  }
-  .tb-right { display: flex; align-items: center; gap: 10px; }
-  .tb-email { font-size: .75rem; color: var(--fg3); font-family: 'Space Mono', monospace; }
-  .tb-logout {
-    background: transparent; border: 1px solid var(--border);
-    color: var(--fg2); padding: 6px 14px; border-radius: 4px;
-    font-size: .78rem; cursor: pointer; transition: all .2s;
-    font-family: 'Inter', sans-serif;
-  }
-  .tb-logout:hover { border-color: rgba(255,80,80,.4); color: rgba(255,120,120,.9); }
+/* STARS */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) var(--delay,0s) infinite;}
+@keyframes twinkle{0%,100%{opacity:var(--min,.1)}50%{opacity:var(--max,.8)}}
 
-  /* ── LAYOUT ── */
-  .db { display: flex; flex-direction: column; height: 100vh; }
-  .db-cols { display: flex; flex: 1; overflow: hidden; }
-  .col { display: flex; flex-direction: column; overflow: hidden; position: relative; }
+/* LAYOUT */
+.db{position:relative;z-index:1;display:flex;height:100vh;}
 
-  /* ── SOURCES COL ── */
-  .col-sources {
-    width: 260px; min-width: 160px; max-width: 420px;
-    border-right: 1px solid var(--border);
-    background: var(--bg2);
-  }
-  .col-hdr {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    font-family: 'Space Mono', monospace;
-    font-size: .62rem; letter-spacing: 2px; text-transform: uppercase;
-    color: var(--fg3);
-    display: flex; align-items: center; justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .col-hdr-cnt { color: var(--accent); }
+/* SIDEBAR */
+.sidebar{
+  width:180px;flex-shrink:0;
+  background:rgba(8,13,26,0.8);
+  border-right:1px solid var(--rim2);
+  display:flex;flex-direction:column;
+  padding:20px 0;
+  backdrop-filter:blur(20px);
+}
+.sb-logo{
+  padding:0 20px 24px;
+  font-family:'DM Serif Display',serif;
+  font-size:1.3rem;color:var(--fg);
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--rim2);
+  margin-bottom:16px;
+}
+.sb-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px var(--cyan)}50%{box-shadow:0 0 16px var(--cyan),0 0 24px rgba(74,255,218,0.3)}}
 
-  .btn-add-src {
-    margin: 10px 12px;
-    background: rgba(74,255,218,0.07);
-    border: 1px solid rgba(74,255,218,0.2);
-    color: var(--accent);
-    padding: 9px 14px; border-radius: 6px;
-    font-size: .8rem; font-weight: 600; cursor: pointer;
-    transition: all .2s; font-family: 'Inter', sans-serif;
-    display: flex; align-items: center; gap: 8px;
-    width: calc(100% - 24px);
-  }
-  .btn-add-src:hover {
-    background: rgba(74,255,218,0.13);
-    box-shadow: 0 0 20px rgba(74,255,218,0.1);
-  }
-  .btn-add-src:disabled { opacity: .5; cursor: not-allowed; }
+.nav-item{
+  display:flex;align-items:center;
+  padding:10px 20px;
+  font-size:.82rem;font-weight:500;
+  color:var(--fg3);cursor:pointer;
+  transition:all .2s;
+  border-left:2px solid transparent;
+  letter-spacing:.02em;
+}
+.nav-item:hover{color:var(--fg2);background:rgba(74,255,218,0.04);}
+.nav-item.active{
+  color:var(--fg);
+  background:rgba(74,255,218,0.08);
+  border-left-color:var(--cyan);
+}
+.sb-footer{margin-top:auto;padding:16px 20px;}
+.sb-email{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--fg3);word-break:break-all;margin-bottom:10px;}
+.sb-logout{
+  width:100%;background:rgba(255,80,80,0.08);
+  border:1px solid rgba(255,80,80,0.15);
+  color:rgba(255,120,120,0.7);
+  padding:7px;border-radius:6px;
+  font-size:.75rem;cursor:pointer;
+  transition:all .2s;font-family:'Outfit',sans-serif;
+}
+.sb-logout:hover{background:rgba(255,80,80,0.15);color:rgba(255,140,140,0.9);}
 
-  .upload-bar {
-    height: 2px; flex-shrink: 0;
-    background: linear-gradient(90deg, #4affda, #2eb8f0);
-    animation: upbar 1.2s ease-in-out infinite;
-  }
-  @keyframes upbar { 0%,100%{opacity:.4} 50%{opacity:1} }
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 
-  .src-list { flex: 1; overflow-y: auto; padding: 4px 0; }
-  .src-list::-webkit-scrollbar { width: 3px; }
-  .src-list::-webkit-scrollbar-thumb { background: var(--border); }
+/* ── SOURCES VIEW ── */
+.view{flex:1;overflow-y:auto;padding:32px;}
+.view::-webkit-scrollbar{width:3px;}
+.view::-webkit-scrollbar-thumb{background:var(--rim);}
+.view-title{
+  font-family:'DM Serif Display',serif;
+  font-size:1.6rem;color:var(--fg);
+  margin-bottom:6px;
+}
+.view-sub{font-size:.82rem;color:var(--fg3);margin-bottom:28px;font-weight:300;}
 
-  .src-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; cursor: pointer; transition: background .15s;
-  }
-  .src-item:hover { background: rgba(74,255,218,0.03); }
-  .src-cb {
-    width: 14px; height: 14px; border-radius: 3px;
-    border: 1px solid var(--border); cursor: pointer;
-    accent-color: var(--accent); flex-shrink: 0;
-  }
-  .src-icon { font-size: .82rem; flex-shrink: 0; }
-  .src-name {
-    font-size: .78rem; color: var(--fg2); flex: 1;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .src-del {
-    background: none; border: none; color: var(--fg3);
-    cursor: pointer; font-size: .75rem; padding: 2px 4px;
-    opacity: 0; transition: opacity .15s;
-  }
-  .src-item:hover .src-del { opacity: 1; }
-  .src-del:hover { color: rgba(255,100,100,.8); }
+.src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px;}
 
-  .src-empty {
-    padding: 32px 16px; text-align: center;
-    color: var(--fg3); font-size: .78rem; line-height: 1.8; font-weight: 300;
-  }
-  .src-empty-icon { font-size: 1.8rem; display: block; margin-bottom: 10px; opacity: .35; }
+.src-card{
+  background:var(--card);
+  border:1px solid var(--rim2);
+  border-radius:12px;padding:18px;
+  cursor:pointer;transition:all .25s;
+  position:relative;overflow:hidden;
+}
+.src-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(74,255,218,0.04),transparent);
+  opacity:0;transition:opacity .25s;
+}
+.src-card:hover{border-color:rgba(74,255,218,0.2);transform:translateY(-2px);}
+.src-card:hover::before{opacity:1;}
+.src-card.selected{border-color:rgba(74,255,218,0.35);background:rgba(74,255,218,0.06);}
 
-  /* ── RESIZER ── */
-  .resizer {
-    width: 4px; cursor: col-resize;
-    background: transparent; transition: background .2s;
-    position: absolute; top: 0; bottom: 0; z-index: 10;
-  }
-  .resizer:hover { background: rgba(74,255,218,0.35); }
-  .resizer-r { right: -2px; }
-  .resizer-l { left: -2px; }
+.src-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.src-card-ext{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.6rem;font-weight:500;
+  color:var(--cyan);
+  background:rgba(74,255,218,0.1);
+  border:1px solid rgba(74,255,218,0.15);
+  padding:3px 7px;border-radius:4px;
+  letter-spacing:.05em;
+}
+.src-card-check{
+  width:18px;height:18px;border-radius:4px;
+  border:1px solid var(--rim2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;transition:all .2s;
+}
+.src-card.selected .src-card-check{
+  background:var(--cyan);border-color:var(--cyan);color:#050810;
+}
+.src-card-name{
+  font-size:.82rem;font-weight:500;color:var(--fg);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-bottom:6px;
+}
+.src-card-meta{font-size:.72rem;color:var(--fg3);display:flex;align-items:center;gap:6px;}
+.src-card-indexed{color:var(--cyan);font-size:.68rem;}
+.src-card-del{
+  position:absolute;top:10px;right:10px;
+  background:rgba(255,80,80,0.1);border:none;
+  color:rgba(255,100,100,0.6);width:22px;height:22px;
+  border-radius:50%;cursor:pointer;font-size:.7rem;
+  opacity:0;transition:opacity .2s;
+  display:flex;align-items:center;justify-content:center;
+}
+.src-card:hover .src-card-del{opacity:1;}
+.src-card-del:hover{background:rgba(255,80,80,0.2);color:rgba(255,120,120,0.9);}
 
-  /* ── CHAT COL ── */
-  .col-chat { flex: 1; min-width: 300px; background: var(--bg); }
+.btn-upload{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(74,255,218,0.08);
+  border:1px solid rgba(74,255,218,0.2);
+  color:var(--cyan);padding:10px 20px;border-radius:8px;
+  font-size:.82rem;font-weight:600;cursor:pointer;
+  transition:all .2s;font-family:'Outfit',sans-serif;
+}
+.btn-upload:hover{background:rgba(74,255,218,0.14);box-shadow:0 0 20px rgba(74,255,218,0.1);}
+.src-empty-state{
+  grid-column:1/-1;
+  text-align:center;padding:48px 24px;
+  color:var(--fg3);
+}
+.src-empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.3;}
+.src-empty-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--fg2);margin-bottom:6px;}
+.src-empty-sub{font-size:.8rem;font-weight:300;}
 
-  .chat-msgs {
-    flex: 1; overflow-y: auto;
-    padding: 24px 32px;
-    display: flex; flex-direction: column; gap: 18px;
-  }
-  .chat-msgs::-webkit-scrollbar { width: 3px; }
-  .chat-msgs::-webkit-scrollbar-thumb { background: var(--border); }
+/* ── CHAT VIEW ── */
+.chat-view{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-hdr{
+  padding:16px 28px;border-bottom:1px solid var(--rim2);
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.chat-hdr-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--fg);}
+.chat-hdr-cnt{
+  font-family:'JetBrains Mono',monospace;font-size:.65rem;
+  color:var(--cyan);background:rgba(74,255,218,0.1);
+  padding:3px 8px;border-radius:10px;
+}
+.chat-msgs{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:16px;}
+.chat-msgs::-webkit-scrollbar{width:3px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--rim);}
 
-  .chat-empty {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    color: var(--fg3); text-align: center; gap: 12px;
-  }
-  .chat-empty-icon { font-size: 2.5rem; opacity: .25; }
-  .chat-empty h3 {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.05rem; font-weight: 700;
-    letter-spacing: 0.05em; color: var(--fg2);
-  }
-  .chat-empty p { font-size: .82rem; max-width: 280px; line-height: 1.75; font-weight: 300; }
+.chat-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;
+}
+.chat-empty-title{
+  font-family:'DM Serif Display',serif;font-style:italic;
+  font-size:1.4rem;color:var(--fg2);text-align:center;
+}
+.suggestions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;}
+.suggest-btn{
+  background:var(--card);border:1px solid var(--rim2);
+  padding:8px 14px;border-radius:20px;
+  font-size:.78rem;color:var(--fg2);cursor:pointer;
+  transition:all .2s;
+}
+.suggest-btn:hover{border-color:rgba(74,255,218,0.3);color:var(--fg);background:rgba(74,255,218,0.06);}
 
-  .msg { display: flex; gap: 10px; max-width: 720px; }
-  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
-  .msg-av {
-    width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .68rem; font-weight: 700;
-    font-family: 'Space Mono', monospace;
-  }
-  .msg.user .msg-av { background: linear-gradient(135deg,#4affda,#2eb8f0); color: #060a14; }
-  .msg.ai .msg-av { background: var(--bg3); border: 1px solid var(--border); color: var(--accent); }
+.msg{display:flex;gap:10px;max-width:680px;}
+.msg.user{flex-direction:row-reverse;align-self:flex-end;}
+.msg-av{
+  width:28px;height:28px;border-radius:6px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+}
+.msg.user .msg-av{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#050810;}
+.msg.ai .msg-av{background:var(--card);border:1px solid var(--rim2);color:var(--cyan);}
+.msg-bubble{
+  padding:11px 15px;border-radius:10px;
+  font-size:.875rem;max-width:520px;line-height:1.7;
+}
+.msg.user .msg-bubble{background:rgba(74,255,218,0.08);border:1px solid rgba(74,255,218,0.15);color:var(--fg);}
+.msg.ai .msg-bubble{background:var(--card);border:1px solid var(--rim2);color:var(--fg2);}
+.msg-text p{margin-bottom:8px;} .msg-text p:last-child{margin-bottom:0;}
+.msg-text strong{color:var(--fg);font-weight:600;}
+.msg-text h3{font-family:'DM Serif Display',serif;color:var(--fg);margin:10px 0 4px;font-size:.95rem;}
+.msg-text li{margin-left:16px;margin-bottom:3px;}
+.typing{display:flex;gap:4px;align-items:center;padding:2px 0;}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--cyan);opacity:.3;animation:tp 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}
+.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes tp{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
 
-  .msg-bubble {
-    padding: 11px 15px; border-radius: 8px;
-    font-size: .875rem; max-width: 540px;
-  }
-  .msg.user .msg-bubble {
-    background: rgba(74,255,218,0.08);
-    border: 1px solid rgba(74,255,218,0.15);
-    color: var(--fg);
-  }
-  .msg.ai .msg-bubble {
-    background: var(--bg3); border: 1px solid var(--border); color: var(--fg2);
-  }
-  .msg-text p { margin-bottom: 10px; line-height: 1.78; }
-  .msg-text p:last-child { margin-bottom: 0; }
-  .msg-text h1,.msg-text h2,.msg-text h3 {
-    font-family: 'Syne', sans-serif; font-weight: 700;
-    color: var(--fg); margin: 14px 0 6px;
-  }
-  .msg-text h3 { font-size: .95rem; letter-spacing: .03em; }
-  .msg-text ul { padding-left: 18px; margin: 6px 0; }
-  .msg-text li { margin-bottom: 5px; line-height: 1.7; }
-  .msg-text strong { color: var(--fg); font-weight: 600; }
-  .msg-text em { color: var(--accent); font-style: italic; }
+.chat-in{padding:16px 28px;border-top:1px solid var(--rim2);flex-shrink:0;}
+.chat-in-box{
+  display:flex;align-items:flex-end;gap:10px;
+  background:var(--card);border:1px solid var(--rim2);
+  border-radius:10px;padding:10px 14px;transition:border-color .2s;
+}
+.chat-in-box:focus-within{border-color:rgba(74,255,218,0.25);}
+.chat-in-box textarea{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--fg);font-family:'Outfit',sans-serif;
+  font-size:.875rem;font-weight:300;line-height:1.6;
+  resize:none;min-height:22px;max-height:100px;
+}
+.chat-in-box textarea::placeholder{color:var(--fg3);}
+.btn-send{
+  width:32px;height:32px;border-radius:7px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a6b8a,var(--cyan));
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.btn-send:hover{transform:scale(1.08);box-shadow:0 0 14px rgba(74,255,218,0.3);}
+.btn-send:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.chat-in-meta{margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--fg3);}
+.chat-in-meta span{color:var(--cyan);}
 
-  .typing { display: flex; gap: 4px; align-items: center; padding: 3px 0; }
-  .typing span {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: var(--accent); opacity: .4;
-    animation: tp 1.2s infinite;
-  }
-  .typing span:nth-child(2) { animation-delay: .2s; }
-  .typing span:nth-child(3) { animation-delay: .4s; }
-  @keyframes tp { 0%,100%{opacity:.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-3px)} }
+/* ── STUDIO VIEW ── */
+.studio-view{flex:1;overflow-y:auto;padding:32px;}
+.studio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
+.st-card{
+  background:var(--card);border:1px solid var(--rim2);
+  border-radius:10px;padding:16px;cursor:pointer;
+  transition:all .25s;text-align:left;
+  font-family:'Outfit',sans-serif;
+}
+.st-card:hover{border-color:rgba(74,255,218,0.25);background:rgba(74,255,218,0.05);transform:translateY(-2px);}
+.st-card.active{border-color:var(--cyan);background:rgba(74,255,218,0.08);}
+.st-card-label{font-family:'DM Serif Display',serif;font-size:.95rem;color:var(--fg);display:block;margin-bottom:3px;}
+.st-card-desc{font-size:.7rem;color:var(--fg3);font-weight:300;}
+.studio-result-box{
+  background:var(--card);border:1px solid var(--rim2);
+  border-radius:12px;padding:20px;
+}
+.studio-result-tag{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:12px;display:block;
+}
+.studio-result-text{font-size:.82rem;color:var(--fg2);line-height:1.8;white-space:pre-wrap;font-weight:300;}
+.studio-empty{color:var(--fg3);font-size:.8rem;font-weight:300;text-align:center;padding:32px;}
 
-  /* CHAT INPUT */
-  .chat-in-wrap {
-    padding: 12px 28px 16px;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .chat-in-box {
-    display: flex; align-items: flex-end; gap: 10px;
-    background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px;
-    transition: border-color .2s;
-  }
-  .chat-in-box:focus-within { border-color: rgba(74,255,218,0.3); }
-  .chat-in-box textarea {
-    flex: 1; background: none; border: none; outline: none;
-    color: var(--fg); font-family: 'Inter', sans-serif;
-    font-size: .875rem; font-weight: 300;
-    line-height: 1.6; resize: none;
-    min-height: 22px; max-height: 120px;
-  }
-  .chat-in-box textarea::placeholder { color: var(--fg3); }
-  .chat-in-meta {
-    display: flex; align-items: center; margin-top: 6px; padding: 0 2px;
-  }
-  .chat-src-info {
-    font-size: .72rem; color: var(--fg3);
-    font-family: 'Space Mono', monospace;
-  }
-  .chat-src-info span { color: var(--accent); }
-  .btn-send {
-    width: 32px; height: 32px; border-radius: 6px;
-    background: linear-gradient(135deg, #1A6B8A, #4affda);
-    border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s; flex-shrink: 0;
-  }
-  .btn-send:hover { transform: scale(1.07); box-shadow: 0 0 16px var(--glow); }
-  .btn-send:disabled { opacity: .35; cursor: not-allowed; transform: none; }
-
-  /* ── STUDIO COL ── */
-  .col-studio {
-    width: 240px; min-width: 160px; max-width: 400px;
-    border-left: 1px solid var(--border);
-    background: var(--bg2);
-  }
-
-  .studio-tools { overflow-y: auto; flex-shrink: 0; }
-  .studio-tools::-webkit-scrollbar { width: 3px; }
-
-  .st-btn {
-    width: 100%; display: flex; align-items: center;
-    padding: 0; background: transparent;
-    border: none; border-bottom: 1px solid rgba(255,255,255,0.04);
-    cursor: pointer; transition: background .2s;
-    text-align: left; position: relative; overflow: hidden;
-  }
-  .st-btn::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-    background: linear-gradient(to bottom, #4affda, #2eb8f0);
-    opacity: 0; transition: opacity .25s;
-  }
-  .st-btn:hover { background: rgba(74,255,218,0.04); }
-  .st-btn:hover::before { opacity: 1; }
-  .st-btn.active { background: rgba(74,255,218,0.07); }
-  .st-btn.active::before { opacity: 1; }
-
-  .st-inner { padding: 12px 14px; flex: 1; }
-  .st-label {
-    font-family: 'Syne', sans-serif;
-    font-size: .92rem; font-weight: 700;
-    letter-spacing: 0.03em;
-    color: var(--fg2); display: block; line-height: 1.2;
-    transition: color .2s;
-  }
-  .st-btn:hover .st-label, .st-btn.active .st-label { color: var(--fg); }
-  .st-sub {
-    font-family: 'Inter', sans-serif;
-    font-size: .68rem; font-weight: 300;
-    color: var(--fg3); display: block; margin-top: 2px;
-    transition: color .2s;
-  }
-  .st-btn:hover .st-sub { color: rgba(240,242,255,.4); }
-
-  .studio-out {
-    flex: 1; overflow-y: auto;
-    padding: 14px; border-top: 1px solid var(--border);
-  }
-  .studio-out::-webkit-scrollbar { width: 3px; }
-  .studio-out-empty {
-    color: var(--fg3); font-size: .75rem;
-    line-height: 1.8; text-align: center;
-    padding-top: 20px; font-weight: 300;
-  }
-  .studio-result-tag {
-    font-family: 'Space Mono', monospace;
-    font-size: .6rem; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--accent);
-    margin-bottom: 10px; display: block;
-  }
-  .studio-result {
-    font-size: .78rem; color: var(--fg2);
-    line-height: 1.75; white-space: pre-wrap; font-weight: 300;
-  }
+/* UPLOAD BAR */
+.upload-progress{
+  height:2px;background:linear-gradient(90deg,var(--cyan),var(--blue));
+  animation:upbar 1.2s ease-in-out infinite;flex-shrink:0;
+}
+@keyframes upbar{0%,100%{opacity:.4}50%{opacity:1}}
 `
+
+// Generate stars
+function Stars() {
+  const stars = Array.from({length: 120}, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 2 + 0.5,
+    delay: Math.random() * 4,
+    dur: Math.random() * 3 + 2,
+    min: Math.random() * 0.15,
+    max: Math.random() * 0.6 + 0.3,
+  }))
+  return (
+    <div className="stars">
+      {stars.map(s => (
+        <div key={s.id} className="star" style={{
+          left: `${s.x}%`, top: `${s.y}%`,
+          width: s.size, height: s.size,
+          '--d': `${s.dur}s`, '--delay': `${s.delay}s`,
+          '--min': s.min, '--max': s.max,
+        }} />
+      ))}
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const msgsEndRef = useRef(null)
-  const sourcesColRef = useRef(null)
-  const studioColRef = useRef(null)
 
+  const [activeNav, setActiveNav] = useState('sources')
   const [sources, setSources] = useState([])
   const [selectedIds, setSelectedIds] = useState([])
   const [messages, setMessages] = useState([])
@@ -396,30 +382,11 @@ export default function Dashboard() {
     try { setSources(await getSources()) } catch {}
   }
 
-  // ── RESIZE ──
-  const startResize = (colRef, side) => (e) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startW = colRef.current.offsetWidth
-    const onMove = (ev) => {
-      const delta = side === 'right' ? ev.clientX - startX : startX - ev.clientX
-      colRef.current.style.width = Math.min(Math.max(startW + delta, 160), 500) + 'px'
-    }
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  }
-
-  // ── UPLOAD ──
   const handleFiles = async (files) => {
     setUploading(true)
     for (const file of files) {
       try {
         const s = await uploadSource(file)
-        // s.name должно быть оригинальным именем файла из бэкенда
         setSources(p => [...p, s])
         setSelectedIds(p => [...p, s.id])
       } catch (err) { alert('Ошибка: ' + err.message) }
@@ -427,31 +394,30 @@ export default function Dashboard() {
     setUploading(false)
   }
 
-  // ── CHAT ──
-  const handleSend = async () => {
-    if (!input.trim() || sending) return
-    const text = input.trim(); setInput('')
-    setMessages(p => [...p, { role: 'user', text }, { role: 'ai', text: null }])
+  const handleSend = async (text) => {
+    const msg = (text || input).trim()
+    if (!msg || sending) return
+    setInput('')
+    setMessages(p => [...p, { role: 'user', text: msg }, { role: 'ai', text: null }])
     setSending(true)
     try {
-      const res = await sendMessage(text, selectedIds)
+      const res = await sendMessage(msg, selectedIds)
       setMessages(p => { const c=[...p]; c[c.length-1]={role:'ai',text:res.answer}; return c })
     } catch (err) {
       setMessages(p => { const c=[...p]; c[c.length-1]={role:'ai',text:'⚠️ '+err.message}; return c })
     } finally { setSending(false) }
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
-  }
-
-  // ── STUDIO ──
   const handleStudio = async (type) => {
-    if (!selectedIds.length) { alert('Выберите хотя бы один источник'); return }
+    if (!selectedIds.length) { alert('Select at least one source'); return }
     setActiveStudio(type); setStudioLoading(true); setStudioResult(null)
     try { setStudioResult(await generateArtifact(type, selectedIds)) }
     catch (err) { setStudioResult({ artifact_type: type, content: { error: err.message } }) }
     finally { setStudioLoading(false) }
+  }
+
+  const toggleSource = (id) => {
+    setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
   }
 
   const email = localStorage.getItem('email') || ''
@@ -459,156 +425,195 @@ export default function Dashboard() {
   return (
     <>
       <style>{css}</style>
+      <Stars />
 
       <div className="db">
-        {/* TOPBAR */}
-        <div className="tb">
-          <a href="/" className="tb-logo">
-            <span className="tb-logo-dot" />
+        {/* SIDEBAR */}
+        <div className="sidebar">
+          <div className="sb-logo">
+            <span className="sb-dot" />
             NEXUS
-          </a>
-          <div className="tb-right">
-            {email && <span className="tb-email">{email}</span>}
-            <button className="tb-logout" onClick={() => { localStorage.clear(); navigate('/') }}>
-              Выйти
+          </div>
+          {NAV.map(n => (
+            <div
+              key={n.id}
+              className={`nav-item${activeNav === n.id ? ' active' : ''}`}
+              onClick={() => setActiveNav(n.id)}
+            >
+              {n.label}
+            </div>
+          ))}
+          <div className="sb-footer">
+            {email && <div className="sb-email">{email}</div>}
+            <button className="sb-logout" onClick={() => { localStorage.clear(); navigate('/') }}>
+              Sign out
             </button>
           </div>
         </div>
 
-        <div className="db-cols">
+        {/* MAIN */}
+        <div className="main">
+          {uploading && <div className="upload-progress" />}
 
-          {/* ── SOURCES ── */}
-          <div className="col col-sources" ref={sourcesColRef}>
-            <div className="col-hdr">
-              <span>Источники</span>
-              <span className="col-hdr-cnt">{sources.length}/300</span>
+          {/* SOURCES */}
+          {activeNav === 'sources' && (
+            <div className="view">
+              <h1 className="view-title">My Sources</h1>
+              <p className="view-sub">
+                {selectedIds.length > 0
+                  ? `${selectedIds.length} of ${sources.length} selected`
+                  : `${sources.length} documents indexed`}
+              </p>
+              <div className="src-grid">
+                {sources.length === 0 ? (
+                  <div className="src-empty-state">
+                    <div className="src-empty-icon">◈</div>
+                    <div className="src-empty-title">No sources yet</div>
+                    <div className="src-empty-sub">Upload documents to get started</div>
+                  </div>
+                ) : sources.map(s => (
+                  <div
+                    key={s.id}
+                    className={`src-card${selectedIds.includes(s.id) ? ' selected' : ''}`}
+                    onClick={() => toggleSource(s.id)}
+                  >
+                    <div className="src-card-top">
+                      <span className="src-card-ext">{getFileExt(s.name)}</span>
+                      <div className="src-card-check">
+                        {selectedIds.includes(s.id) && '✓'}
+                      </div>
+                    </div>
+                    <div className="src-card-name" title={s.name}>
+                      {getDisplayName(s.name)}
+                    </div>
+                    <div className="src-card-meta">
+                      <span className="src-card-indexed">✓ indexed</span>
+                    </div>
+                    <button
+                      className="src-card-del"
+                      onClick={e => {
+                        e.stopPropagation()
+                        deleteSource(s.id)
+                        setSources(p => p.filter(x => x.id !== s.id))
+                        setSelectedIds(p => p.filter(x => x !== s.id))
+                      }}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+              <button className="btn-upload" onClick={() => setShowModal(true)}>
+                + Add Sources
+              </button>
             </div>
-            <button className="btn-add-src" onClick={() => setShowModal(true)} disabled={uploading}>
-              {uploading ? '⏳ Загружаем...' : '＋  Добавить источники'}
-            </button>
-            {uploading && <div className="upload-bar" />}
-            <div className="src-list">
-              {sources.length === 0 ? (
-                <div className="src-empty">
-                  <span className="src-empty-icon">📂</span>
-                  Загрузите PDF, Word,<br />изображения или аудио
-                </div>
-              ) : sources.map(s => (
-                <div
-                  className="src-item" key={s.id}
-                  onClick={() => setSelectedIds(p =>
-                    p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id]
-                  )}
-                >
-                  <input
-                    type="checkbox" className="src-cb"
-                    checked={selectedIds.includes(s.id)}
-                    onChange={() => {}}
-                    onClick={e => e.stopPropagation()}
+          )}
+
+          {/* CHAT */}
+          {activeNav === 'chat' && (
+            <div className="chat-view">
+              <div className="chat-hdr">
+                <span className="chat-hdr-title">Chat</span>
+                {selectedIds.length > 0 && (
+                  <span className="chat-hdr-cnt">{selectedIds.length} sources</span>
+                )}
+              </div>
+              <div className="chat-msgs">
+                {messages.length === 0 ? (
+                  <div className="chat-empty">
+                    <p className="chat-empty-title">Ask anything about<br />your documents</p>
+                    <div className="suggestions">
+                      {SUGGESTED.map(s => (
+                        <button key={s} className="suggest-btn" onClick={() => handleSend(s)}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : messages.map((m, i) => (
+                  <div key={i} className={`msg ${m.role}`}>
+                    <div className="msg-av">{m.role === 'user' ? 'ME' : '◈'}</div>
+                    <div className="msg-bubble">
+                      {m.text === null
+                        ? <div className="typing"><span/><span/><span/></div>
+                        : <div className="msg-text" dangerouslySetInnerHTML={{__html:`<p>${formatMessage(m.text)}</p>`}} />
+                      }
+                    </div>
+                  </div>
+                ))}
+                <div ref={msgsEndRef} />
+              </div>
+              <div className="chat-in">
+                <div className="chat-in-box">
+                  <textarea
+                    placeholder="Ask a question about your sources... (Enter to send)"
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleSend()} }}
+                    rows={1}
+                    onInput={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px' }}
                   />
-                  <span className="src-icon">{getFileIcon(s.name)}</span>
-                  <span className="src-name" title={s.name}>
-                    {getDisplayName(s.name)}
-                  </span>
-                  <button
-                    className="src-del"
-                    onClick={e => {
-                      e.stopPropagation()
-                      deleteSource(s.id)
-                      setSources(p => p.filter(x => x.id !== s.id))
-                      setSelectedIds(p => p.filter(x => x !== s.id))
-                    }}
-                  >✕</button>
+                  <button className="btn-send" onClick={() => handleSend()} disabled={sending || !input.trim()}>
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                      <path d="M2 7h10M8 3l4 4-4 4" stroke="#050810" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
                 </div>
-              ))}
-            </div>
-            <div className="resizer resizer-r" onMouseDown={startResize(sourcesColRef, 'right')} />
-          </div>
-
-          {/* ── CHAT ── */}
-          <div className="col col-chat">
-            <div className="col-hdr"><span>Чат</span></div>
-            <div className="chat-msgs">
-              {messages.length === 0 ? (
-                <div className="chat-empty">
-                  <span className="chat-empty-icon">◈</span>
-                  <h3>Начните разговор</h3>
-                  <p>Загрузите источники слева и задайте вопрос по их содержимому</p>
-                </div>
-              ) : messages.map((m, i) => (
-                <div key={i} className={`msg ${m.role}`}>
-                  <div className="msg-av">{m.role === 'user' ? 'ME' : '◈'}</div>
-                  <div className="msg-bubble">
-                    {m.text === null
-                      ? <div className="typing"><span/><span/><span/></div>
-                      : <MessageBubble text={m.text} />
-                    }
-                  </div>
-                </div>
-              ))}
-              <div ref={msgsEndRef} />
-            </div>
-            <div className="chat-in-wrap">
-              <div className="chat-in-box">
-                <textarea
-                  placeholder="Задайте вопрос по документам... (Enter — отправить)"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={1}
-                  onInput={e => {
-                    e.target.style.height = 'auto'
-                    e.target.style.height = e.target.scrollHeight + 'px'
-                  }}
-                />
-                <button className="btn-send" onClick={handleSend} disabled={sending || !input.trim()}>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                    <path d="M2 7h10M8 3l4 4-4 4" stroke="#060a14" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-              <div className="chat-in-meta">
-                <span className="chat-src-info">
+                <div className="chat-in-meta">
                   {selectedIds.length > 0
-                    ? <><span>{selectedIds.length}</span> источн. выбрано</>
-                    : 'Выберите источники слева'}
-                </span>
+                    ? <><span>{selectedIds.length}</span> sources selected</>
+                    : 'Go to My Sources to select documents'}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* ── STUDIO ── */}
-          <div className="col col-studio" ref={studioColRef}>
-            <div className="resizer resizer-l" onMouseDown={startResize(studioColRef, 'left')} />
-            <div className="col-hdr"><span>Студия</span></div>
-            <div className="studio-tools">
-              {STUDIO_TOOLS.map(t => (
-                <button
-                  key={t.type}
-                  className={`st-btn${activeStudio === t.type ? ' active' : ''}`}
-                  onClick={() => handleStudio(t.type)}
-                >
-                  <div className="st-inner">
-                    <span className="st-label">{t.label}</span>
-                    <span className="st-sub">{t.sub}</span>
-                  </div>
-                </button>
-              ))}
+          {/* STUDIO */}
+          {activeNav === 'studio' && (
+            <div className="studio-view">
+              <h1 className="view-title">Studio</h1>
+              <p className="view-sub">Generate content from your sources</p>
+              <div className="studio-grid">
+                {STUDIO_TOOLS.map(t => (
+                  <button
+                    key={t.type}
+                    className={`st-card${activeStudio === t.type ? ' active' : ''}`}
+                    onClick={() => handleStudio(t.type)}
+                  >
+                    <span className="st-card-label">{t.label}</span>
+                    <span className="st-card-desc">{t.desc}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="studio-result-box">
+                {!studioResult
+                  ? <div className="studio-empty">
+                      {studioLoading ? '⏳ Generating...' : 'Select sources and click a tool above'}
+                    </div>
+                  : <>
+                      <span className="studio-result-tag">{studioResult.artifact_type}</span>
+                      <div className="studio-result-text">
+                        {JSON.stringify(studioResult.content, null, 2)}
+                      </div>
+                    </>
+                }
+              </div>
             </div>
-            <div className="studio-out">
-              {!studioResult ? (
-                <div className="studio-out-empty">
-                  {studioLoading ? '⏳ Генерируем...' : 'Выберите источники и нажмите инструмент'}
-                </div>
-              ) : (
-                <div className="studio-result">
-                  <span className="studio-result-tag">{studioResult.artifact_type}</span>
-                  {JSON.stringify(studioResult.content, null, 2)}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
+          {/* HISTORY */}
+          {activeNav === 'history' && (
+            <div className="view">
+              <h1 className="view-title">History</h1>
+              <p className="view-sub" style={{color:'var(--fg3)'}}>Coming soon</p>
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {activeNav === 'settings' && (
+            <div className="view">
+              <h1 className="view-title">Settings</h1>
+              <p className="view-sub" style={{color:'var(--fg3)'}}>Coming soon</p>
+            </div>
+          )}
         </div>
       </div>
 
