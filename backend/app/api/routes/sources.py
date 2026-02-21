@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Header
 from app.core.supabase import supabase
 from app.services.parser import parse_file
+from app.services.rag import chunk_text, store_chunks
 from typing import Optional
 import uuid, os, tempfile
 
@@ -34,7 +35,6 @@ async def upload_source(
         raise HTTPException(status_code=401, detail="Не авторизован")
     user_id = get_user_id(authorization)
 
-    # Сохраняем оригинальное имя файла!
     original_name = file.filename
     ext = original_name.split(".")[-1].lower() if "." in original_name else "txt"
     tmp_path = None
@@ -50,14 +50,21 @@ async def upload_source(
         print(f"Parsed [{original_name}]: {len(content_text)} символов")
 
         source_id = str(uuid.uuid4())
+
+        # Сохраняем источник
         res = supabase.table("sources").insert({
             "id": source_id,
             "user_id": user_id,
-            "name": original_name,   # ← оригинальное имя файла
+            "name": original_name,
             "type": ext,
             "content": content_text[:50000],
             "enabled": True,
         }).execute()
+
+        # Нарезаем на чанки и сохраняем для RAG
+        chunks = chunk_text(content_text)
+        await store_chunks(source_id, chunks)
+        print(f"Stored {len(chunks)} chunks for [{original_name}]")
 
         return res.data[0]
 
