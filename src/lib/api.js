@@ -2,7 +2,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token')
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -23,6 +23,7 @@ export const login = async (email, password) => {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
+  localStorage.setItem('token', data.access_token)
   localStorage.setItem('email', data.email)
   return data
 }
@@ -40,7 +41,7 @@ export const uploadSource = (file) => {
   const token = localStorage.getItem('token')
   const form = new FormData()
   form.append('file', file)
-  return fetch(`${BASE}/api/sources/upload`, {
+  return fetch(`${BASE_URL}/api/sources/upload`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
