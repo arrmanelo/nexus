@@ -75,11 +75,6 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
 .db{position:relative;z-index:1;display:flex;height:100vh;}
 
 /* OVERLAY for mobile */
-.sb-overlay{
-  display:none;position:fixed;inset:0;z-index:99;
-  background:rgba(0,0,0,0.5);
-  pointer-events:none;
-}
 
 /* SIDEBAR */
 .sidebar{
@@ -100,6 +95,11 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
   border-bottom:1px solid var(--rim2);
   margin-bottom:16px;
 }
+.sb-close{
+  display:none;margin-left:auto;background:none;border:none;
+  color:var(--fg3);cursor:pointer;font-size:.9rem;padding:2px 4px;
+}
+@media(max-width:640px){.sb-close{display:block;}}
 .sb-dot{
   width:8px;height:8px;border-radius:50%;
   background:var(--cyan);box-shadow:0 0 10px var(--cyan);
@@ -326,7 +326,6 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
     z-index:1000;
   }
   .sidebar.open{transform:translateX(0);}
-  .sb-overlay.open{display:block;pointer-events:auto;}
   .mob-bar{display:flex;}
   .src-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
   .msg{max-width:100%;}
@@ -423,15 +422,13 @@ export default function Dashboard() {
       <style>{css}</style>
       <Stars />
 
-      {/* Mobile overlay */}
-      <div className={`sb-overlay${sidebarOpen ? ' open' : ''}`} onClick={() => setSidebarOpen(false)} />
-
       <div className="db">
         {/* SIDEBAR */}
         <div className={`sidebar${sidebarOpen ? ' open' : ''}`}>
           <div className="sb-logo">
             <span className="sb-dot" />
             NEXUS
+            <button className="sb-close" onClick={() => setSidebarOpen(false)}>✕</button>
           </div>
           {NAV.map(n => (
             <div key={n.id} className={`nav-item${activeNav === n.id ? ' active' : ''}`} onClick={() => navTo(n.id)}>
