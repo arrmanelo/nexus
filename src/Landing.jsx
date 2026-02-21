@@ -744,8 +744,9 @@ export default function Landing() {
         <div style={S.ctaGroup}>
           <button
             style={S.ctaBtn}
-            onMouseEnter={e => { e.target.style.transform = "scale(1.04)"; e.target.style.filter = "brightness(1.15)"; }}
-            onMouseLeave={e => { e.target.style.transform = "scale(1)"; e.target.style.filter = "none"; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.filter = "brightness(1.15)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.filter = "none"; }}
+            onClick={() => window.location.href = "/register"}
           >
             {CONFIG.cta} →
           </button>
@@ -978,8 +979,9 @@ export default function Landing() {
             <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }} className="nexus-cta-group">
               <button
                 style={{ ...S.ctaBtn, padding: "18px 48px", fontSize: "16px" }}
-                onMouseEnter={e => { e.target.style.transform = "scale(1.05)"; }}
-                onMouseLeave={e => { e.target.style.transform = "scale(1)"; }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               >
                 {CONFIG.cta} — it's free →
               </button>

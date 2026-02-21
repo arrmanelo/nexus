@@ -76,8 +76,8 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
 
 /* OVERLAY for mobile */
 .sb-overlay{
-  display:none;position:fixed;inset:0;z-index:99;
-  background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  display:none;position:fixed;inset:0;z-index:98;
+  background:rgba(0,0,0,0.6);
 }
 
 /* SIDEBAR */
@@ -89,7 +89,7 @@ body{background:var(--void);color:var(--fg);font-family:'Outfit',sans-serif;}
   padding:20px 0;
   backdrop-filter:blur(20px);
   transition:transform .3s ease;
-  z-index:100;
+  z-index:200;
 }
 .sb-logo{
   padding:0 20px 24px;
