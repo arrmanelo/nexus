@@ -5,7 +5,6 @@ import os
 
 app = FastAPI(title="OceanMind API", version="0.1.0")
 
-# Берём из переменной окружения или используем дефолт
 cors_origins_raw = os.getenv("CORS_ORIGINS", "")
 extra_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
 

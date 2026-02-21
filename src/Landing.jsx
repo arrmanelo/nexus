@@ -402,6 +402,27 @@ export default function Landing() {
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
       }
+
+      @media (max-width: 768px) {
+        .nexus-nav-links { display: none !important; }
+        .nexus-nav { padding: 0 20px !important; }
+        .nexus-hero { padding: 100px 20px 60px !important; }
+        .nexus-mockup { display: none !important; }
+        .nexus-section { padding: 80px 20px !important; }
+        .nexus-stats { padding: 60px 20px !important; gap: 32px !important; grid-template-columns: repeat(2, 1fr) !important; }
+        .nexus-grid4 { grid-template-columns: 1fr !important; }
+        .nexus-testimonials { grid-template-columns: 1fr !important; }
+        .nexus-cta-section { padding: 60px 20px !important; }
+        .nexus-cta-card { padding: 48px 24px !important; }
+        .nexus-footer { padding: 32px 20px !important; flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
+        .nexus-footer-links { flex-wrap: wrap !important; gap: 16px !important; }
+        .nexus-cta-group { flex-direction: column !important; align-items: stretch !important; }
+        .nexus-scroll-hint { display: none !important; }
+      }
+
+      @media (max-width: 480px) {
+        .nexus-stats { grid-template-columns: repeat(2, 1fr) !important; gap: 24px !important; }
+      }
     `;
     document.head.appendChild(style);
 
@@ -671,12 +692,12 @@ export default function Landing() {
       }} />
 
       {/* NAV */}
-      <nav style={S.nav}>
+      <nav style={S.nav} className="nexus-nav">
         <div style={S.logo}>
           <span style={S.logoAccent}>◈</span>
           {CONFIG.brand}
         </div>
-        <ul style={S.navLinks}>
+        <ul style={S.navLinks} className="nexus-nav-links">
           {CONFIG.nav.map((item) => (
             <li key={item}>
               <span
@@ -707,7 +728,7 @@ export default function Landing() {
       </nav>
 
       {/* HERO */}
-      <section style={S.hero} ref={heroRef}>
+      <section style={S.hero} ref={heroRef} className="nexus-hero">
         <div style={S.badge}>
           <span style={S.badgeDot} />
           Now in public beta — Free forever
@@ -738,7 +759,7 @@ export default function Landing() {
         </div>
 
         {/* Floating dashboard mockup */}
-        <div style={{
+        <div className="nexus-mockup" style={{
           marginTop: "80px",
           width: "min(860px, 90vw)",
           height: "min(440px, 45vw)",
@@ -857,20 +878,20 @@ export default function Landing() {
           }} />
         </div>
 
-        <div style={S.scrollHint}>
+        <div style={S.scrollHint} className="nexus-scroll-hint">
           <span style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Scroll</span>
           <div style={{ width: "1px", height: "40px", background: "linear-gradient(180deg, rgba(0,245,212,0.6), transparent)" }} />
         </div>
       </section>
 
       {/* FEATURES */}
-      <section id="product" style={S.section}>
+      <section id="product" style={S.section} className="nexus-section">
         <div style={S.sectionLabel}>Features</div>
         <h2 style={S.sectionTitle}>Stop reading.<br />Start asking.</h2>
         <p style={S.sectionSub}>
           Upload your documents once. Then just ask — in plain language, no special syntax.
         </p>
-        <div style={S.grid4}>
+        <div style={S.grid4} className="nexus-grid4">
           {CONFIG.features.map((f, i) => (
             <FeatureCard key={f.title} {...f} delay={i * 100} />
           ))}
@@ -879,7 +900,7 @@ export default function Landing() {
 
       {/* STATS */}
       <div style={S.statsWrap}>
-        <div style={S.statsInner}>
+        <div style={S.statsInner} className="nexus-stats">
           {CONFIG.stats.map((s, i) => (
             <StatItem key={s.label} {...s} delay={i * 120} />
           ))}
@@ -887,10 +908,10 @@ export default function Landing() {
       </div>
 
       {/* SOCIAL PROOF */}
-      <section style={S.section}>
+      <section style={S.section} className="nexus-section">
         <div style={S.sectionLabel}>Testimonials</div>
         <h2 style={{ ...S.sectionTitle, marginBottom: "56px" }}>Loved by people who read a lot</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }} className="nexus-testimonials">
           {[
             { quote: "I dropped a 120-page tender document and had a full summary with action points in under two minutes. Unreal.", name: "Sarah Chen", role: "Procurement Lead at Verve" },
             { quote: "Our legal team now reviews contracts in a fraction of the time. We just ask NEXUS what we need to know.", name: "Marcus Rodriguez", role: "General Counsel at Drift" },
@@ -930,8 +951,8 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <div id="pricing" style={S.ctaSection}>
-        <div style={S.ctaCard}>
+      <div id="pricing" style={S.ctaSection} className="nexus-cta-section">
+        <div style={S.ctaCard} className="nexus-cta-card">
           {/* Glow blobs */}
           <div style={{
             position: "absolute", top: "-60px", left: "-60px",
@@ -954,7 +975,7 @@ export default function Landing() {
             <p style={{ ...S.sectionSub, margin: "0 auto 48px", textAlign: "center" }}>
               Join thousands of people who stopped searching and started asking.
             </p>
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }} className="nexus-cta-group">
               <button
                 style={{ ...S.ctaBtn, padding: "18px 48px", fontSize: "16px" }}
                 onMouseEnter={e => { e.target.style.transform = "scale(1.05)"; }}
@@ -972,7 +993,7 @@ export default function Landing() {
       </div>
 
       {/* FOOTER */}
-      <footer style={{ ...S.footer, borderTop: "1px solid rgba(255,255,255,0.06)", maxWidth: "100%", padding: "40px 80px" }}>
+      <footer style={{ ...S.footer, borderTop: "1px solid rgba(255,255,255,0.06)", maxWidth: "100%", padding: "40px 80px" }} className="nexus-footer">
         <div style={S.logo}>
           <span style={S.logoAccent}>◈</span>
           {CONFIG.brand}
@@ -980,7 +1001,7 @@ export default function Landing() {
             © 2025
           </span>
         </div>
-        <div style={{ display: "flex", gap: "32px" }}>
+        <div style={{ display: "flex", gap: "32px" }} className="nexus-footer-links">
           {["Privacy", "Terms", "Security", "Status"].map(item => (
             <span
               key={item}
